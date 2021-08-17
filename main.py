@@ -28,6 +28,9 @@ async def reaction_event(payload: RawReactionActionEvent):
         print('No member found')
         return
     message: Message = await channel.fetch_message(payload.message_id)
+    if message.author.roles[::-1].name != 'Admin':
+        print('Non-admin message')
+        return
     reaction_map: dict[str, str] = dict(line.split(' for ', 1) for line in message.content.lower().split('\n'))
     role = reaction_map.get(payload.emoji.name, None)
     if not role:
