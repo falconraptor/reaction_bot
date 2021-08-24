@@ -35,7 +35,7 @@ async def reaction_event(payload: RawReactionActionEvent):
         # print('No member found')
         return
     message: Message = await channel.fetch_message(payload.message_id)
-    if message.author.roles[::-1][0].name != 'Admin':
+    if message.author.roles[-1].name != 'Admin':  # highest role is last
         # print('Non-admin message')
         return
     reaction_map: dict[str, str] = get_reactions_from_message(message.content)
@@ -71,7 +71,7 @@ async def on_raw_message_edit(payload: RawMessageUpdateEvent):
 
 
 async def message_event(before: Optional[Message], after: Message):
-    if after.author.roles[::-1][0].name != 'Admin':
+    if after.author.roles[-1].name != 'Admin':  # highest role is last
         # print('Non-admin message')
         return
     before_reaction_map = {}
