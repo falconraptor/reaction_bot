@@ -22,24 +22,34 @@ async def on_raw_reaction_remove(payload: RawReactionActionEvent):
     await reaction_event(payload)
 
 
+def get_reactions_from_message(message: str) -> dict[str, str]:
+    return dict(line.strip().replace('  ', ' ').split(' for ', 1) for line in message.lower().split('\n') if ' for ' in line)
+
+
 async def reaction_event(payload: RawReactionActionEvent):
     channel: TextChannel = client.get_channel(payload.channel_id)
     member: Member = payload.member or channel.guild.get_member(payload.user_id)
     if member.id == client.user.id:
         return
     if not member:
-        print('No member found')
+        # print('No member found')
         return
     message: Message = await channel.fetch_message(payload.message_id)
     if message.author.roles[::-1][0].name != 'Admin':
-        print('Non-admin message')
+        # print('Non-admin message')
         return
-    reaction_map: dict[str, str] = dict(line.split(' for ', 1) for line in message.content.lower().split('\n') if ' for ' in line)
+    reaction_map: dict[str, str] = get_reactions_from_message(message.content)
+    if not reaction_map:
+        # print('Non-role message')
+        return
     role = reaction_map.get(payload.emoji.name, None)
     if not role:
-        print('No emoji found')
+        print('No emoji found', payload.emoji.name, member.nick or member.display_name, message.content)
         return
-    await getattr(member, f'{payload.event_type[9:].lower()}_roles')([r for r in channel.guild.roles if r.name.lower() == role][0])
+    try:
+        await getattr(member, f'{payload.event_type[9:].lower()}_roles')([r for r in channel.guild.roles if r.name.lower() == role][0])
+    except IndexError:
+        print('Role name mismatch:', role)
 
 
 @client.event
@@ -62,11 +72,15 @@ async def on_raw_message_edit(payload: RawMessageUpdateEvent):
 
 async def message_event(before: Optional[Message], after: Message):
     if after.author.roles[::-1][0].name != 'Admin':
+        # print('Non-admin message')
         return
     before_reaction_map = {}
     if before:
-        before_reaction_map = {line.split(' for ', 1)[0] for line in before.content.lower().split('\n') if ' for ' in line}
-    reaction_map = {line.split(' for ', 1)[0] for line in after.content.lower().split('\n') if ' for ' in line}
+        before_reaction_map = set(get_reactions_from_message(before.content).keys())
+    reaction_map = set(get_reactions_from_message(after.content).keys())
+    if not reaction_map:
+        # print('Non-role message')
+        return
     if before_reaction_map:
         for emoji in before_reaction_map - reaction_map:
             await after.remove_reaction(emoji, client.user)
