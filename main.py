@@ -23,7 +23,7 @@ async def on_raw_reaction_remove(payload: RawReactionActionEvent):
 
 
 def get_reactions_from_message(message: str) -> dict[str, str]:
-    return dict(line.strip().replace('  ', ' ').split(' for ', 1) for line in message.lower().split('\n') if ' for ' in line)
+    return {k: v for k, v in dict(line.strip().replace('  ', ' ').split(' for ', 1) for line in message.lower().split('\n') if ' for ' in line).items() if len(k) <= 4}
 
 
 async def reaction_event(payload: RawReactionActionEvent):
@@ -44,7 +44,7 @@ async def reaction_event(payload: RawReactionActionEvent):
         return
     role = reaction_map.get(payload.emoji.name, None)
     if not role:
-        print('No emoji found', payload.emoji.name, member.nick or member.display_name, message.content)
+        print('No emoji found', repr(payload.emoji), len(payload.emoji.name), member.nick or member.display_name, message.content)
         return
     try:
         await getattr(member, f'{payload.event_type[9:].lower()}_roles')([r for r in channel.guild.roles if r.name.lower() == role][0])
@@ -88,4 +88,5 @@ async def message_event(before: Optional[Message], after: Message):
         for emoji in reaction_map:
             await after.add_reaction(emoji)
 
-client.run(environ['discord'])
+if __name__ == '__main__':
+    client.run(environ['discord'])
