@@ -74,19 +74,15 @@ async def message_event(before: Optional[Message], after: Message):
     if after.author.roles[-1].name != 'Admin':  # highest role is last
         # print('Non-admin message')
         return
-    before_reaction_map = {}
-    if before:
-        before_reaction_map = set(get_reactions_from_message(before.content).keys())
     reaction_map = set(get_reactions_from_message(after.content).keys())
     if not reaction_map:
         # print('Non-role message')
         return
-    if before_reaction_map:
-        for emoji in before_reaction_map - reaction_map:
+    if before:
+        for emoji in set(get_reactions_from_message(before.content).keys()) - reaction_map:
             await after.remove_reaction(emoji, client.user)
-    if reaction_map:
-        for emoji in reaction_map:
-            await after.add_reaction(emoji)
+    for emoji in reaction_map:
+        await after.add_reaction(emoji)
 
 if __name__ == '__main__':
     client.run(environ['discord'])
